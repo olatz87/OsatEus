@@ -1,0 +1,33 @@
+{% load staticfiles %}
+{% load txantiloiak_extras %}
+
+<head>
+<title>{% block title %}Osasun-txostenak - Laburpena{% endblock %}</title>
+</head>
+
+<link rel="stylesheet" type="text/css" href="{% static 'txantiloiak/style.css' %}" />
+
+<div id="lab">
+<h1>Txostenaren laburpena</h1>
+<span id="identifikadorea">Txosten_id: {{ txostena }}</span>
+<br/>
+<input type="button" value="Aldatu" onClick="window.location='/txantiloiak/{{ txostena.edukiaatala_set.first.atala.espezialitatea.id }}/aldatu/{{txostena}}'"/>
+<input type="button" value="Hasiera" onClick="window.location='/txantiloiak/'"/>
+<br/><br/>
+<div id="espe_lab">
+{% for edukia in txostena.edukiaatala_set.all %}
+<div class="{{edukia.atala.izenburua|diagGorriz}}">
+<h2>{{edukia.atala.izenburua}}: </h2><span>{{edukia.testua}}</span>
+{% for azp_edukia in edukia.edukiaazpiatala_set.all %}
+<div class="atal_lab">
+<azpiatala>{{azp_edukia.azpiatala.izenburua}}. </azpiatala><span>{{azp_edukia.testua}}</span>
+</div><!--atal_lab-->
+{% endfor%}
+</div><!--atal_lab-->
+{% endfor%}
+<br/>
+</div><!--espe_lab-->
+</div><!--lab-->
+
+<input type="button" value="Aldatu" onClick="window.location='/txantiloiak/{{ txostena.edukiaatala_set.first.atala.espezialitatea.id }}/aldatu/{{txostena}}'"/>
+<input type="button" value="Hasiera" onClick="window.location='/txantiloiak/'"/>

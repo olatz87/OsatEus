@@ -1,0 +1,1 @@
+../../analizatzaileak/sct4text.py

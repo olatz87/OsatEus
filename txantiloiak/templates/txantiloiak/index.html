@@ -1,0 +1,77 @@
+
+{% load staticfiles %}
+
+
+<head>
+<title>{% block title %}Osasun-txostenak{% endblock %}</title>
+</head>
+<link rel="stylesheet" type="text/css" href="{% static 'txantiloiak/style.css' %}" />
+    <div id="header">
+        <div id="branding">
+        {% block branding %}<h1>Osasun-txostenen idazketa</h1>{% endblock %}
+        </div>
+        {% block usertools %}
+        <div id="user-tools">
+            {% block welcome-msg %}Ongi etorri <strong>{% firstof user.get_short_name user.get_username %}</strong>. 
+            {% endblock %}
+            {% block userlinks %}
+                {% if site_url %}
+                    <a href="{{ site_url }}">Ikusi orria</a> /
+                {% endif %}
+                {% if user.is_active and user.is_staff %}
+                    {% url 'django-admindocs-docroot' as docsroot %}
+                    {% if docsroot %}
+                        <a href="{{ docsroot }}">dokumentazioa</a> /
+                    {% endif %}
+                {% endif %}
+                {% if user.has_usable_password %}
+                <!--<a href="{% url 'admin:password_change' %}">Pasahitza aldatu</a> /-->
+                {% endif %}
+                <a href="{% url 'logout' %}">Atera</a>
+            {% endblock %}
+        </div>
+        {% endblock %}
+        {% block nav-global %}{% endblock %}
+    </div>
+    <!-- END Header -->
+<div id="header">
+  <h1>OsatEUS</h1>
+</div>
+<div id="nav">
+<h2>Alta txosten berriak</h2>
+{% if espezialitateen_zerrenda %}
+    <ul>
+    {% for espe in espezialitateen_zerrenda %}
+        <li><a href="/txantiloiak/{{ espe.id }}/berria">{{ espe.izena }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>Ez daude espezialitaterik atzigarri.</p>
+{% endif %}
+</div>
+{% block content %}
+<div id="section">
+<h1>Idatzitako alta txostenak</h1>
+
+{% if user.is_authenticated %}
+{% if egindako_txostenak %}
+<ul>
+  {% for txos in egindako_txostenak %}
+  <li><a href="/txantiloiak/laburpena/{{ txos.id }}/">{{ txos.id }} {{ txos.get_espezialitatea }} </a>{{txos.data}}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>Ez dituzu txostenik gordeta</p>
+{% endif %}
+{% else %}
+<p>Ez zaude kautotuta </p>
+{% endif %}
+
+</div>
+{% endblock %}
+
+
+<div id="footer">
+IXA taldea
+</div>
+

@@ -1,0 +1,1 @@
+/sc01a4/users/aelorz003/KBP/analizatzaileak/analizatzailea_eu.py

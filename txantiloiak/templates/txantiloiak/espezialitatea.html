@@ -1,0 +1,282 @@
+{% load staticfiles %}
+{% load txantiloiak_extras %}
+
+<head>
+<title>{% block title %} Osasun-txostenak - Idazketa {% endblock %}</title>
+</head>
+
+<script src="jquery-1.12.2.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'txantiloiak/style.css' %}"  />
+<h3> Terminoen taldekatzea </h3>
+<table style="width:100%">
+  <tr>
+    <td style="width:30px; background-color:#ff8080">DISORDER</td>
+    <td style="width:30px; background-color:#99ff99">  FINDING</td>
+    <td style="width:30px; background-color: #00ffff">  PROCEDURE</td>
+    <td style="width:30px; background-color: #e600ac">  BODYSCTRUCTURE</td>
+    <td style="width:30px; background-color: #ffaa00">  PRODUCT or SUBSTANCE </td>
+    <td style="width:30px; background-color: #ffff00">  QUALIFIER</td>
+    <td style="width:30px; background-color: #b3b3e6">  OTHERS</td>
+  </tr>
+</table>
+<div class="espe">
+
+<h1>{{ espezialitatea }}</h1>
+{% if txostena %}
+<form action="{% url 'txantiloiak:gordeAldatua' txostena.id %}" method="post" id="txostena" >
+{% else %}
+<form action="{% url 'txantiloiak:gorde' espezialitatea.id %}" method="post" id="txostena" >
+
+{% endif %}
+
+{% csrf_token %}
+  {% for atal in espezialitatea.atala_set.all %}
+    <div class="emaitza">
+      <span  class="emaitzaSpan" id="emaitza{{ atal.id }}"></span>
+    </div>
+
+     <div class="atal">
+
+      <label for="atal">
+        <input type="checkbox"  name="atalch"  onclick="ShowHideDiv(this,'testuT{{ atal.id }}')" value="{{ atal.id }}" {{atal.hautazkoa|hautazkoaChecked}}>{{ atal.izenburua }}
+      </label>
+      <div class="testu" id="testuT{{ atal.id }}" style="{{atal.hautazkoa|hautazkoaCollapse}}" >
+        <textarea form="txostena"  onblur = "jsonLortu('{{ atal.id }}')" id="testu{{ atal.id }}" name="testu{{ atal.id }}">{% if txostena%}{% get_eduk_atala txostena.id atal.id %}{% else %}{{atal.testua}}{% endif %}</textarea>
+      </div>
+
+      {% for azp in atal.azpiatala_set.all %}
+        <div class="emaitzaAzpi">
+          <span class="emaitzaSpan" id="emaitza{{atal.id}}_{{ azp.id }}"></span>
+        </div>
+
+        <div class="azpi">
+          <label1 for="azpi">
+	           <input type="checkbox" name="azpich"   onclick="ShowHideDiv(this,'testuT{{atal.id}}_{{ azp.id }}')" value="{{atal.id}}_{{ azp.id }}" {% if txostena %}{% get_gord_azpiatala txostena.id azp.id atal.id as badago %}{{badago|hautazkoaChecked}}{% else %}{{azp.hautazkoa|hautazkoaChecked}}{% endif %}>{{ azp.izenburua }}.
+          </label1>
+          <div class="testu" id="testuT{{atal.id}}_{{ azp.id }}" style="{% if txostena %}{% get_gord_azpiatala txostena.id azp.id atal.id as badago %}{{badago|hautazkoaCollapse}}{% else %}{{azp.hautazkoa|hautazkoaCollapse}}{% endif %}" >
+	    <textarea form="txostena" onblur = "jsonLortu('{{atal.id}}_{{ azp.id }}')" name="testu{{atal.id}}_{{ azp.id }}" id="testu{{atal.id}}_{{ azp.id }}">{% if txostena %}{% get_eduk_azpiatala txostena.id azp.id atal.id %}{% else %}{{azp.testua}}{% endif %}</textarea>
+	        </div>
+	      </div>
+        {% endfor %}
+  </div><!--atal-->
+{% endfor %}
+
+
+<input type="submit" value="Gorde" />
+<input type="reset" value="Ezabatu" />
+<input type="button" value="Hasiera" onClick="window.location='/txantiloiak/'"/>
+</form>
+</div>
+
+
+<!-- Terminoa klikatzerakoan PopUp hau agertuko da -->
+<div id="myModal" class="modal">
+
+  <!--   -->
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="close">&times</span>
+      <!-- terminoaren izena hemen agertuko da  -->
+      <h2 id="terminoIzena"> </h2>
+    </div>
+    <div class="modal-body">
+   <!-- radioBttnak hemen agertuko dira  -->
+	<blockquote id="radioButtonMultzo">
+	</blockquote>
+    </div>
+   <!-- footerra gehitu  -->
+    <div class="modal-footer"> . <div>
+  </div>
+
+</div>
+
+
+<script type="text/javascript">
+    function ShowHideDiv(chk,ida) {
+        var dv = document.getElementById(ida);
+        dv.style.display = chk.checked ? "block" : "none";
+    }
+
+    //textarean idatzitako testua lortu kurtsorea kentzerakoan
+    function jsonLortu(ida) {
+            var testuID = "testu".concat(ida);
+            var emaitzaID = "emaitza".concat(ida);
+            var regex = /^[a-zA-Z0-9.,:;+-_^? /%()]*$/;
+            if (regex.test(document.getElementById(testuID).value)) {
+        	//textareako testua lortu
+      		var x = document.getElementById(testuID).value;
+      		var arraya = x.split(" ");
+        	//analizatzailea_eu.py-ri textareako testua bidali analizatzeko
+        	$.ajax({
+          	type: "GET",
+          	url: "berria/analiza/",
+         	data: { param: x}, 
+         	dataType: "text"
+          	}).done(function( jsonLortu ) {
+              		//alert(jsonLortu);
+              		hitzakDetektatu(jsonLortu, x, emaitzaID);
+        	}); 
+	}else{
+		alert("Erabilitako teknologiaren ondorioz, OsatEUS aplikazioa ez du ñ edo º  bezalako karakterik onartzen. Mesedez, karaktere hauek ezabatu.");
+	}
+     }
+
+
+function hitzakDetektatu(testua, x, emaitzaID){
+    // '-k ordez " idatzi
+    var bitartekaria = testua.replace(/'/g,'"');
+    // String-a JSON bihurtu
+    var jsonTestua = JSON.parse(bitartekaria);
+   // termino guztiak dagokion kolorearekin azaldu
+    var testuaFinal = "";
+    var dauka = false;
+    //array.length ez da egokia (json puntuak begiratu) json.count edo antzeko zeoze bilatu forr egokia izateko.
+    for(i = 0; i < jsonTestua.length; i++){
+	// hitzak ez badauka snomedId-rik ez badauka -> ez zaio kolorerik esleituko
+        if (typeof jsonTestua[i][1].sctId == "undefined"){
+            testuaFinal += jsonTestua[i][0]+ " ";
+        }
+        else{
+            var j = 0;
+	    //snomedId "HAS" badauka, terminoak konkatenatuko ditu (hitz anitzeko terminoentzako)
+            if (jsonTestua[i][1].sctId.indexOf("HAS") > -1){
+                
+		while((jsonTestua[i][1].sctId.indexOf("BUK")) <=  -1){
+   			if (jsonTestua[i+j][1].sctId.indexOf("BUK") >  -1){
+				break;
+			}else{
+                        j++;
+                	jsonTestua[i][0] = jsonTestua[i][0].concat(" ".concat(jsonTestua[i+j][0]));
+			}
+		}
+	    }
+            // terminoa ambiguoa bada (sctId bat baino gehiago) azpimarratuta agertuko da.
+            jsonTestua[i][0] = terminoAnbiguoak(jsonTestua[i][0], jsonTestua[i][1].sctId);
+            //koloreak ezarri terminoei(prioritate gehiena duen hierarkia DISORDER >.....> gutxiena QUALIFIER
+            if (jsonTestua[i][1].Hierarchy.indexOf("DISORDER") > -1){
+                //kolore gorrixka = #ff8080
+		testuaFinal += '<mark onclick="popUpAtera(\'hitza_'+emaitzaID+'_'+i+'\',\''+jsonTestua[i][1].sctId+'\', \''+jsonTestua[i][1].Hierarchy+'\')" id="'+'hitza'+'_'+emaitzaID+'_'+i+'" style="background-color: #ff8080">'+jsonTestua[i][0] + '</mark> ';
+		dauka = true;            
+            }else if ((jsonTestua[i][1].Hierarchy.indexOf("FINDING") > -1) && dauka == false){
+		//kolore berdexka = #99ff99
+		testuaFinal += '<mark onclick="popUpAtera(\'hitza_'+emaitzaID+'_'+i+'\',\''+jsonTestua[i][1].sctId+'\', \''+jsonTestua[i][1].Hierarchy+'\')" id="'+'hitza'+'_'+emaitzaID+'_'+i+'"  style="background-color: #99ff99">'+jsonTestua[i][0] + '</mark> ';
+		dauka = true;
+            }else if ((jsonTestua[i][1].Hierarchy.indexOf("PROCEDURE") > -1) && dauka == false){
+                //kolore urdin argia = #00ffff
+		testuaFinal += '<mark onclick="popUpAtera(\'hitza_'+emaitzaID+'_'+i+'\',\''+jsonTestua[i][1].sctId+'\', \''+jsonTestua[i][1].Hierarchy+'\')" id="'+'hitza'+'_'+emaitzaID+'_'+i+'" style="background-color: #00ffff"  >'+jsonTestua[i][0] + '</mark> ';
+                dauka = true;
+	    }else if ((jsonTestua[i][1].Hierarchy.indexOf("BODYSTRUCTURE") > -1) && dauka == false){
+                //kolore arroxa = #e600ac
+		testuaFinal += '<mark onclick="popUpAtera(\'hitza_'+emaitzaID+'_'+i+'\',\''+jsonTestua[i][1].sctId+'\', \''+jsonTestua[i][1].Hierarchy+'\')" id="'+'hitza'+'_'+emaitzaID+'_'+i+'" style="background-color: #e600ac">'+jsonTestua[i][0] + '</mark> ';
+                dauka = true;
+            }else if ((jsonTestua[i][1].Hierarchy.indexOf("PHARMPRODUCT") > -1  || jsonTestua[i][1].Hierarchy.indexOf("SUBSTANCE") > -1) && dauka == false){
+		// kolore laranja = #ffaa00
+                testuaFinal += '<mark onclick="popUpAtera(\'hitza_'+emaitzaID+'_'+i+'\',\''+jsonTestua[i][1].sctId+'\', \''+jsonTestua[i][1].Hierarchy+'\')" id="'+'hitza'+'_'+emaitzaID+'_'+i+'" style="background-color: #ffaa00">'+jsonTestua[i][0] + '</mark> ';
+                dauka = true;
+            }else if ((jsonTestua[i][1].Hierarchy.indexOf("QUALIFIER") > -1) && dauka == false){
+              	// kolore horia =  #ffff00
+		testuaFinal += '<mark onclick="popUpAtera(\'hitza_'+emaitzaID+'_'+i+'\',\''+jsonTestua[i][1].sctId+'\', \''+jsonTestua[i][1].Hierarchy+'\')" id="'+'hitza'+'_'+emaitzaID+'_'+i+'"style="background-color: #ffff00">'+jsonTestua[i][0] + '</mark> ';
+                dauka = true;
+            }else if (dauka == false){
+    		// kolore urdin iluna-morea = #b3b3e6
+                testuaFinal += '<mark onclick="popUpAtera(\'hitza_'+emaitzaID+'_'+i+'\',\''+jsonTestua[i][1].sctId+'\', \''+jsonTestua[i][1].Hierarchy+'\')" id="'+'hitza'+'_'+emaitzaID+'_'+i+'" style="background-color: #b3b3e6">'+jsonTestua[i][0] + '</mark> ';
+	    }
+            if (jsonTestua[i][1].sctId.indexOf("HAS") > -1){
+                i = i + j;
+            }
+            dauka= false;
+        }
+    }
+    document.getElementById(emaitzaID).innerHTML = testuaFinal;
+}
+
+function terminoAnbiguoak(terminoa, sctId){
+    	
+    if(sctId.indexOf("#") > -1){
+        terminoa = "<u>" + terminoa + "</u>";
+    }
+    return terminoa;
+}
+
+
+
+// Popup-a lortu
+var modal = document.getElementById('myModal');
+
+// temrinoaren gainean klik egiterakoan popUp-a azalduko da
+function popUpAtera(terminoID, sctIdMultzoa, hierarkiMultzoa){
+        var modal = document.getElementById('myModal');
+	var hitzAnbiguoa = document.getElementById(terminoID).innerHTML;
+        document.getElementById('terminoIzena').innerHTML = hitzAnbiguoa;
+
+        //popUp-ean agertuko diren snomed eta hierarkiak (aukeratutako terminoarena)
+        var radioBttnMultzoa = lortuRadioButton(sctIdMultzoa);
+        document.getElementById('radioButtonMultzo').innerHTML = radioBttnMultzoa;
+    
+	modal.style.display = "block";
+        
+}
+
+//terminoaren snomedId eta hierarkiak radioButtonetan agertuko dira
+function lortuRadioButton(sctMul){
+	var radioMultzoak = "";
+        var stcIdArray = sctMul.split("#");
+	for(i = 0; i < stcIdArray.length; i++){
+		// _HAS, _ERD edo _BUk ezabatu sctId-tatik
+                if(stcIdArray[i].indexOf("_") > -1){
+			var indexMarra = stcIdArray[i].indexOf("_");
+                        stcIdArray[i] = (stcIdArray[i]).slice(0,indexMarra);
+		}
+		//AJAX deitu snomed-ct idaren FSNa lortzeko.
+                var fsnLortu = ajaxDeitu(stcIdArray[i]);
+
+		//radioButtonak konkatenatu. Hemen SnomedId eta fsn agertuko dira.
+	       radioMultzoak += '<input type="radio" name="anbiguoa" checked="checked" value="'+i+'"> '+ stcIdArray[i]+'  -  '+ fsnLortu  +'<br>';
+	}
+	 
+	return radioMultzoak;
+}
+
+
+function ajaxDeitu(sctId){
+       var idsnomed =  sctId;
+       var fsnLortu = $.ajax({
+             type: "GET",
+             url: "fsnLortu/",
+             data: { param: idsnomed },
+             async: false,
+             dataType: "text"
+        })
+        return fsnLortu.responseText;
+}
+
+
+// X <span>a popUp-a itxiko duena
+var itxi = document.getElementsByClassName("close")[0];
+itxi.onclick = function() {
+    modal.style.display = "none";
+}
+
+// POpUparen kanpoan klik egiterakoan hau itxiko da
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
+$(document).ready(function(){
+  var radios = document.getElementsByName("anbiguoa");
+  var val = localStorage.getItem('anbiguoa');
+  for(var i=0;i<radios.length;i++){
+    if(radios[i].value == val){
+      radios[i].checked = true;
+    }
+  }
+  $('input[name="anbiguoa"]').on('change', function(){
+    localStorage.setItem('anbiguoa', $(this).val());
+  
+  });
+});
+
+</script>
